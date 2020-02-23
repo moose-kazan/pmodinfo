@@ -77,30 +77,38 @@ eval {
 	
 	# load module info
 	foreach my $chunk (@{$chunks}) {
-		my $modname;
-		# RUn modinfo
+		#my $modname;
+		# Run modinfo
 		open F, "-|", "modinfo " . join(" ", @$chunk);
-		# Parsing output of modinfo
-		while (my $line = <F>) {
-			if ($line =~ m|^([^:]+): +(.*)$|is) {
-				my $key = $1;
-				my $val = $2;
-				chomp($val);
-				# Module name
-				if ($key eq "name") {
-					# If name is outside our data - it's very strange
-					$modname = defined($moduleList->{$val}) ? $val : undef;
+		my $modinfoDataLine;
+		{
+			$/ = undef;
+			$modinfoDataLine = <F>;
+		}
+		my @modinfoData = split /filename: /is, $modinfoDataLine;
+		foreach my $dataLine (@modinfoData) {
+			# Try to find module name
+			if ($dataLine =~ m{name: +(.*?)(\n|$)}is) {
+				my $modname = $1;
+				# Something wrong
+				if (!defined($moduleList->{$modname})) {
+					next;
 				}
-				# Module param
-				elsif ($key eq "parm" && $modname) {
-					#print "Key: $key\nVal: $val\n\n";
-					if ($val =~ m|^([^:]+):(.*)$|is) {
-						$moduleList->{$modname}->{params}->{$1}->{desc} = $2;
+				# Parse other data
+				foreach my $line (split /\n/, $dataLine) {
+					if ($line =~ m|^([^:]+): +(.*)$|is) {
+						my $key = $1;
+						my $val = $2;
+						chomp($val);
+						if ($key eq "description") {
+							$moduleList->{$modname}->{desc} = $val;
+						}
+						elsif ($key eq "parm") {
+							if ($val =~ m|^([^:]+):(.*)$|is) {
+								$moduleList->{$modname}->{params}->{$1}->{desc} = $2;
+							}		
+						}
 					}
-				}
-				# Module description
-				elsif ($key eq "description" && $modname) {
-					$moduleList->{$modname}->{desc} = $val;
 				}
 			}
 		}
