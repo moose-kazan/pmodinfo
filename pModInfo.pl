@@ -30,19 +30,22 @@ eval {
 					opendir DP, "/sys/module/$modname/parameters";
 					while (my $param = readdir DP) {
 						if ( -f "/sys/module/$modname/parameters/$param" ) {
+							$moduleList->{$modname}->{params}->{$param} = {
+								value => "",
+								desc => "",
+							};
+
 							my $val;
+
 							{
 								#print "Reading /sys/module/$modname/parameters/$param\n";
-								open PV, "<", "/sys/module/$modname/parameters/$param";
+								open PV, "<", "/sys/module/$modname/parameters/$param" or next;
 								local $/ = undef;
 								$val = <PV>;
 								close PV;
 							}
 							chomp $val if $val;
-							$moduleList->{$modname}->{params}->{$param} = {
-								value => $val,
-								desc => "",
-							}
+							$moduleList->{$modname}->{params}->{$param}->{value} = $val;
 						}
 					}
 					closedir DP;
