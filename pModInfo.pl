@@ -22,6 +22,7 @@ eval {
 			if ( -d "/sys/module/$modname" && $modname !~ m{^\.\.?$} ) {
 				$moduleList->{$modname} = {
 					type => "built-in",
+					desc => "",
 					params => {},
 				};
 				# if module have params
@@ -85,15 +86,21 @@ eval {
 				my $key = $1;
 				my $val = $2;
 				chomp($val);
+				# Module name
 				if ($key eq "name") {
 					# If name is outside our data - it's very strange
 					$modname = defined($moduleList->{$val}) ? $val : undef;
 				}
+				# Module param
 				elsif ($key eq "parm" && $modname) {
 					#print "Key: $key\nVal: $val\n\n";
 					if ($val =~ m|^([^:]+):(.*)$|is) {
 						$moduleList->{$modname}->{params}->{$1}->{desc} = $2;
 					}
+				}
+				# Module description
+				elsif ($key eq "description" && $modname) {
+					$moduleList->{$modname}->{desc} = $val;
 				}
 			}
 		}
@@ -113,7 +120,7 @@ if (my $error = $@) {
 
 # Build UI
 my $mw = MainWindow->new( -title => "perl Module Info" );
-$mw->geometry("640x400");
+$mw->geometry("720x400");
 my $lBox = $mw->Listbox()->pack( -side => "left", -expand => 1, -fill => "both" );
 my $hList = $mw->HList(-columns => 3, -header => 1, -itemtype => "text")->pack( -side => "right", -expand => 1, -fill => "both" );
 my $sBar= $mw->Scrollbar(-command => ["yview", $lBox])->pack(-side => 'right', -fill => 'y');
