@@ -16,10 +16,10 @@ apt install libtk-perl kmod
 
 # ToDo
 
-* Show module status (built-in/loaed)
+* Show module status (built-in/loaded)
 * Show module description (if avaialble)
 * TUI
-* FreeBSD support
+* FreeBSD support (maybe??)
 
 
 # Screenshot
