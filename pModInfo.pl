@@ -38,7 +38,7 @@ eval {
 								$val = <PV>;
 								close PV;
 							}
-							chomp $val;
+							chomp $val if $val;
 							$moduleList->{$modname}->{params}->{$param} = {
 								value => $val,
 								desc => "",
