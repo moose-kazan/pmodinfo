@@ -150,7 +150,7 @@ if (my $error = $@) {
 #exit();
 
 # Build UI
-my $mw = MainWindow->new( -title => "perl Module Info" );
+my $mw = MainWindow->new( -title => "perl Kernel Module Info" );
 $mw->geometry("720x400");
 my $listMod = $mw->HList(-columns => 3, -header => 1, -itemtype => "text", -selectmode => "browse")->pack( -side => "left", -expand => 1, -fill => "both" );
 my $listParam = $mw->HList(-columns => 3, -header => 1, -itemtype => "text")->pack( -side => "right", -expand => 1, -fill => "both" );
