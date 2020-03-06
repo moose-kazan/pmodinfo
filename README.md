@@ -11,13 +11,13 @@ It can be runned without superuser priveleges, but some modules allow reading pa
 On ubuntu you need install packages:
 
 ```
-apt install libtk-perl kmod
+apt install perl-tk kmod
 ```
 
 # ToDo
 
 * TUI
-* FreeBSD support (maybe??)
+* Support for other OS. than Linux
 
 
 # Screenshot
