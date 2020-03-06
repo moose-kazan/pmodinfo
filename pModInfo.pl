@@ -12,19 +12,42 @@ use Data::Dumper;
 # all info will be stored here
 my $moduleList = {};
 
-# Try to load module list
-eval {
+# Init module data in main structure
+sub initModuleData {
+	my ($modname, $modtype) = @_;
+	$moduleList->{$modname} = {
+		type => "$modtype",
+		desc => "",
+		params => {},
+	} unless defined $moduleList->{$modname};
+}
+
+# Get loaded modules
+sub getLoadedModules {
+	my $fh;
+	open $fh, "<", "/proc/modules1" or $fh = undef;
+	# Try to use lsmod util
+	open $fh, "-|", "lsmod" or $fh = undef unless $fh;
+	return 0 unless $fh;
+	if ($fh) {
+		while (my $modname = <$fh>) {
+			next if $modname =~ m{Module.*Size.*Used}i;
+			$modname =~ s|^([^ ]+).*$|$1|is;
+			initModuleData($modname, "loaded");
+		}
+		close $fh;
+	}
+}
+
+# Get all from /sys
+sub getFromSys {
 	# if /sys mounted
 	if ( -d "/sys/module") {
 		opendir D, "/sys/module";
 		while (my $modname = readdir D) {
 			# If directory and not "up-level"
 			if ( -d "/sys/module/$modname" && $modname !~ m{^\.\.?$} ) {
-				$moduleList->{$modname} = {
-					type => "built-in",
-					desc => "",
-					params => {},
-				};
+				initModuleData($modname, "built-in");
 				# if module have params
 				if ( -d "/sys/module/$modname/parameters" ) {
 					opendir DP, "/sys/module/$modname/parameters";
@@ -34,9 +57,7 @@ eval {
 								value => "",
 								desc => "",
 							};
-
 							my $val;
-
 							{
 								#print "Reading /sys/module/$modname/parameters/$param\n";
 								open PV, "<", "/sys/module/$modname/parameters/$param" or next;
@@ -54,29 +75,14 @@ eval {
 		}
 		closedir D;
 	}
-	# If /proc mounted
-	if ( -f "/proc/modules") {
-		open F, "<", "/proc/modules";
-		while (my $modname = <F>) {
-			$modname =~ s|^([^ ]+).*$|$1|is;
-			$moduleList->{$modname}->{type} = "loaded";
-		}
-		close F;
-	}
-	# If /proc not mounted
-	else {
-		# Try to use lsmod util
-		open F, "-|", "lsmod";
-		# Skip header
-		my $modname = <F>;
-		# Read stdout of lsmod
-		while (my $modname = <F>) {
-			$modname =~ s|^([^ ]+).*$|$1|is;
-			$moduleList->{$modname}->{type} = "loaded";
-		}
-		close F;
-	}
-	
+}
+
+# Try to load module list
+eval {
+	getLoadedModules();
+	getFromSys();
+
+
 	# find loaded modules and split it for chunks
 	my $chunks = [];
 	my $chunk = [];
