@@ -63,6 +63,19 @@ eval {
 		}
 		close F;
 	}
+	# If /proc not mounted
+	else {
+		# Try to use lsmod util
+		open F, "-|", "lsmod";
+		# Skip header
+		my $modname = <F>;
+		# Read stdout of lsmod
+		while (my $modname = <F>) {
+			$modname =~ s|^([^ ]+).*$|$1|is;
+			$moduleList->{$modname}->{type} = "loaded";
+		}
+		close F;
+	}
 	
 	# find loaded modules and split it for chunks
 	my $chunks = [];
