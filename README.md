@@ -1,24 +1,35 @@
 # pModInfo
-## perl Module Info
+## perl Kernel Module Info
 
-Small script wrinting on Perl with user interface on TK.
+Two small scripts writting on Perl. Both scripts have similar functionality and
+difference only in user interface:
 
-This script show list of loaded and built-in kernel modules, modules param and param descriptions.
+* pkmi-x.pl - have UI based on TK library and targeted for X-Window users
+* pkmi-text.pl - have UI based on Cursers library and targeted for terminal users
 
-It can be runned without superuser priveleges, but some modules allow reading param values only for root.
+Both scripts show list of loaded and built-in kernel modules, and available module
+parameters with values and descriptions (if available).
 
+They can be runned without root priveleges, but some kernel modules allow read
+info only for root.
 
+# Install
 On ubuntu you need install packages:
 
 ```
-apt install perl-tk kmod
+apt install libcurses-ui-perl perl-tk kmod
 ```
 
 # ToDo
 
-* TUI
-* Support for other OS. than Linux
-
+* Support for other OS. not only Linux
+* Handle terminal window resize in pkmi-text.pl
+* Show module dependency tree
 
 # Screenshot
-![Screenshot](./screenshot.png)
+
+## pkmi-x.pl
+![Screenshot](./screenshots/x.png)
+
+## pkmi-text.pl
+![Screenshot](./screenshots/text.png)
