@@ -25,7 +25,7 @@ sub initModuleData {
 # Get loaded modules
 sub getLoadedModules {
 	my $fh;
-	open $fh, "<", "/proc/modules1" or $fh = undef;
+	open $fh, "<", "/proc/modules" or $fh = undef;
 	# Try to use lsmod util
 	open $fh, "-|", "lsmod" or $fh = undef unless $fh;
 	return 0 unless $fh;
