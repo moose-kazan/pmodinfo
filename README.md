@@ -45,5 +45,5 @@ apt install perl-tk kmod
 ![Screenshot](./screenshots/text.png)
 
 ## pkmi-tk.pl
-![Screenshot](./screenshots/x.png)
+![Screenshot](./screenshots/tk.png)
 
