@@ -8,143 +8,16 @@ use Tk;
 use Tk::HList;
 
 use Data::Dumper;
+use File::Basename;
 
-# all info will be stored here
-my $moduleList = {};
+use lib dirname(__FILE__) . "/libs";
+use pmodinfo;
 
-# Init module data in main structure
-sub initModuleData {
-	my ($modname, $modtype) = @_;
-	$moduleList->{$modname} = {
-		type => "$modtype",
-		desc => "",
-		params => {},
-	} unless defined $moduleList->{$modname};
-}
+my $dataLoader = pmodinfo->new();
 
-# Get loaded modules
-sub getLoadedModules {
-	my $fh;
-	open $fh, "<", "/proc/modules" or $fh = undef;
-	# Try to use lsmod util
-	open $fh, "-|", "lsmod" or $fh = undef unless $fh;
-	return 0 unless $fh;
-	if ($fh) {
-		while (my $modname = <$fh>) {
-			next if $modname =~ m{Module.*Size.*Used}i;
-			$modname =~ s|^([^ ]+).*$|$1|is;
-			initModuleData($modname, "loaded");
-		}
-		close $fh;
-	}
-}
+$dataLoader->loadData();
 
-# Get all from /sys
-sub getFromSys {
-	# if /sys mounted
-	if ( -d "/sys/module") {
-		opendir D, "/sys/module";
-		while (my $modname = readdir D) {
-			# If directory and not "up-level"
-			if ( -d "/sys/module/$modname" && $modname !~ m{^\.\.?$} ) {
-				initModuleData($modname, "built-in");
-				# if module have params
-				if ( -d "/sys/module/$modname/parameters" ) {
-					opendir DP, "/sys/module/$modname/parameters";
-					while (my $param = readdir DP) {
-						if ( -f "/sys/module/$modname/parameters/$param" ) {
-							$moduleList->{$modname}->{params}->{$param} = {
-								value => "",
-								desc => "",
-							};
-							my $val;
-							{
-								#print "Reading /sys/module/$modname/parameters/$param\n";
-								open PV, "<", "/sys/module/$modname/parameters/$param" or next;
-								local $/ = undef;
-								$val = <PV>;
-								close PV;
-							}
-							chomp $val if $val;
-							$moduleList->{$modname}->{params}->{$param}->{value} = $val;
-						}
-					}
-					closedir DP;
-				}
-			}
-		}
-		closedir D;
-	}
-}
-
-# Try to load module list
-eval {
-	getLoadedModules();
-	getFromSys();
-
-
-	# find loaded modules and split it for chunks
-	my $chunks = [];
-	my $chunk = [];
-	foreach my $modname (keys %{$moduleList}) {
-		if ($moduleList->{$modname}->{type} eq "loaded") {
-			push @$chunk, $modname;
-			if (@$chunk == 10) {
-				push @$chunks, $chunk;
-				$chunk = [];
-			}
-		}
-	}
-	push @$chunks, $chunk if @$chunk > 0;
-	
-	# load module info
-	foreach my $chunk (@{$chunks}) {
-		#my $modname;
-		# Run modinfo
-		open F, "-|", "modinfo " . join(" ", @$chunk);
-		my $modinfoDataLine;
-		{
-			$/ = undef;
-			$modinfoDataLine = <F>;
-		}
-		my @modinfoData = split /filename: /is, $modinfoDataLine;
-		foreach my $dataLine (@modinfoData) {
-			# Try to find module name
-			if ($dataLine =~ m{name: +(.*?)(\n|$)}is) {
-				my $modname = $1;
-				# Something wrong
-				if (!defined($moduleList->{$modname})) {
-					next;
-				}
-				# Parse other data
-				foreach my $line (split /\n/, $dataLine) {
-					if ($line =~ m|^([^:]+): +(.*)$|is) {
-						my $key = $1;
-						my $val = $2;
-						chomp($val);
-						if ($key eq "description") {
-							$moduleList->{$modname}->{desc} = $val;
-						}
-						elsif ($key eq "parm") {
-							if ($val =~ m|^([^:]+):(.*)$|is) {
-								$moduleList->{$modname}->{params}->{$1}->{desc} = $2;
-							}		
-						}
-					}
-				}
-			}
-		}
-		close F;
-	}
-	
-	#print Dumper($moduleList);
-	
-};
-if (my $error = $@) {
-	print "Can't load module list!\n";
-	exit(1);
-}
-
+my $moduleList = $dataLoader->getData();
 
 #print Dumper($moduleList);
 #exit();
