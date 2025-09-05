@@ -4,7 +4,7 @@
 Two small scripts writting on Perl. Both scripts have similar functionality and
 difference only in user interface:
 
-* pkmi-gtk2.pl - have UI based on GTK2 library and targeted for X-Window users
+* pkmi-gtk3.pl - have UI based on GTK3 library and targeted for X-Window users
 * pkmi-text.pl - have UI based on Cursers library and targeted for terminal users
 * pkmi-tk.pl - have UI based on Tk library and targeted for X-Window users. It will be removed in the future.
 
@@ -21,8 +21,8 @@ On ubuntu you need install packages:
 # For pkmi-text.pl:
 apt install libcurses-ui-perl kmod
 
-# For pkmi-gtk2.pl
-apt install libgtk2-perl kmod
+# For pkmi-gtk3.pl
+apt install libgtk3-perl kmod
 
 # For pkmi-tk.pl
 apt install perl-tk kmod
@@ -32,14 +32,13 @@ apt install perl-tk kmod
 
 * Support for other OS. not only Linux
 * Handle terminal window resize in pkmi-text.pl
-* Resizable tab headers in pkmi-gtk2.pl
+* Resizable tab headers in pkmi-gtk3.pl
 * Show module dependency tree
-* Move all functions related to kernel modules into a separate library
 
 # Screenshot
 
-## pkmi-gtk2.pl
-![Screenshot](./screenshots/gtk2.png)
+## pkmi-gtk3.pl
+![Screenshot](./screenshots/gtk3.png)
 
 ## pkmi-text.pl
 ![Screenshot](./screenshots/text.png)
