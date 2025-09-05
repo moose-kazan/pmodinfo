@@ -182,7 +182,7 @@ foreach my $modname (sort(keys(%{$moduleList}))) {
 $listMod->configure( -browsecmd => sub{
 	my $modname = shift;
 	$listParam->delete("all");
-	foreach my $param (keys %{$moduleList->{$modname}->{params}}) {
+	foreach my $param (sort keys %{$moduleList->{$modname}->{params}}) {
 		$listParam->add($param);
 		$listParam->itemCreate($param, 0, -text => $param);
 		$listParam->itemCreate($param, 1, -text => $moduleList->{$modname}->{params}->{$param}->{value});
