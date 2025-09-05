@@ -1,12 +1,39 @@
 package pmodinfo;
 
+use File::Which;
+
 sub new {
     my $class = shift;
     return bless { moduleList => {} }, $class;
 }
 
+sub _findExecutable {
+    my ($self, $command) = @_;
+
+    my $lsmodPath = which $command;
+    return $lsmodPath if $lsmodPath;
+
+    my @variants = (
+        "/bin/$command",
+        "/usr/bin/$command",
+        "/sbin/$command",
+        "/usr/sbin/$command",
+    );
+
+    foreach my $variant (@variants) {
+        if (-x $variant) {
+            return $variant;
+        }
+    }
+
+    return undef;
+}
+
 sub _addModuleInfo {
     my ($self, $modName, $modType, $modDesc) = @_;
+    
+    return if $self->{moduleList}->{$modName};
+
     $self->{moduleList}->{$modName} = {
         type => $modType,
         desc => $modDesc,
@@ -26,9 +53,14 @@ sub _getModulesLoaded {
     my $self = shift;
     my $fh;
     open $fh, "<", "/proc/modules" or $fh = undef;
-    # Try to use lsmod util
-    open $fh, "-|", "lsmod" or $fh = undef unless $fh;
+
+    # Try to use lsmod util if can't open file
+    my $lsmodPath = $self->_findExecutable("lsmod");
+    if ($lsmodPath && !$fh) {
+        open $fh, "-|", "lsmod" or $fh = undef;
+    }
     return 0 unless $fh;
+
     if ($fh) {
         while (my $modname = <$fh>) {
             next if $modname =~ m{Module.*Size.*Used}i;
@@ -75,72 +107,82 @@ sub _getModulesFromSystem {
 
 sub _updateAllDescriptions {
     my $self = shift;
-
-	eval {
-        # find loaded modules and split it for chunks
-        my $chunks = [];
-        my $chunk = [];
-        foreach my $modname (keys %{$self->{moduleList}}) {
-            if ($self->{moduleList}->{$modname}->{type} eq "loaded") {
-                push @$chunk, $modname;
-                if (@$chunk == 10) {
-                    push @$chunks, $chunk;
-                    $chunk = [];
-                }
+    
+    # find loaded modules and split it for chunks
+    my $chunks = [];
+    my $chunk = [];
+    foreach my $modname (keys %{$self->{moduleList}}) {
+        if ($self->{moduleList}->{$modname}->{type} eq "loaded") {
+            push @$chunk, $modname;
+            if (@$chunk == 10) {
+                push @$chunks, $chunk;
+                $chunk = [];
             }
         }
-        push @$chunks, $chunk if @$chunk > 0;
+    }
+    push @$chunks, $chunk if @$chunk > 0;
+    
+    my $modinfoPath = $self->_findExecutable("modinfo");
+
+    if (!$modinfoPath) {
+        print "Can't find modinfo util!\n";
+        return;
+    }
         
-        # load module info
-        foreach my $chunk (@{$chunks}) {
-            #my $modname;
-            # Run modinfo
-            open F, "-|", "modinfo " . join(" ", @$chunk);
-            my $modinfoDataLine;
-            {
-                $/ = undef;
-                $modinfoDataLine = <F>;
-            }
-            my @modinfoData = split /filename: /is, $modinfoDataLine;
-            foreach my $dataLine (@modinfoData) {
-                # Try to find module name
-                if ($dataLine =~ m{name: +(.*?)(\n|$)}is) {
-                    my $modname = $1;
-                    # Something wrong
-                    if (!defined($self->{moduleList}->{$modname})) {
-                        next;
-                    }
-                    # Parse other data
-                    foreach my $line (split /\n/, $dataLine) {
-                        if ($line =~ m|^([^:]+): +(.*)$|is) {
-                            my $key = $1;
-                            my $val = $2;
-                            chomp($val);
-                            if ($key eq "description") {
-                                $self->{moduleList}->{$modname}->{desc} = $val;
-                            }
-                            elsif ($key eq "parm") {
-                                if ($val =~ m|^([^:]+):(.*)$|is) {
-                                    $self->{moduleList}->{$modname}->{params}->{$1}->{desc} = $2;
-                                }		
-                            }
+    # load module info
+    foreach my $chunk (@{$chunks}) {
+        #my $modname;
+        # Run modinfo
+        open F, "-|", join(" ", ($modinfoPath, @$chunk));
+        my $modinfoDataLine;
+        {
+            $/ = undef;
+            $modinfoDataLine = <F>;
+        }
+        my @modinfoData = split /filename: /is, $modinfoDataLine;
+        foreach my $dataLine (@modinfoData) {
+            # Try to find module name
+            if ($dataLine =~ m{name: +(.*?)(\n|$)}is) {
+                my $modname = $1;
+                # Something wrong
+                if (!defined($self->{moduleList}->{$modname})) {
+                    next;
+                }
+                # Parse other data
+                foreach my $line (split /\n/, $dataLine) {
+                    if ($line =~ m|^([^:]+): +(.*)$|is) {
+                        my $key = $1;
+                        my $val = $2;
+                        chomp($val);
+                        if ($key eq "description") {
+                            $self->{moduleList}->{$modname}->{desc} = $val;
+                        }
+                        elsif ($key eq "parm") {
+                            if ($val =~ m|^([^:]+):(.*)$|is) {
+                                $self->{moduleList}->{$modname}->{params}->{$1}->{desc} = $2;
+                            }		
                         }
                     }
                 }
             }
-            close F;
         }
-    };
-    if (my $error = $@) {
-        print "Can't load module list!\n";
+        close F;
     }
 }
 
 sub loadData {
     my $self = shift;
-    $self->_getModulesLoaded();
-    $self->_getModulesFromSystem();
-    $self->_updateAllDescriptions();
+
+    eval {
+        $self->_getModulesLoaded();
+        $self->_getModulesFromSystem();
+        $self->_updateAllDescriptions();
+    };
+
+    if (my $error = $@) {
+        print "Can't load module list!\n";
+    }
+
 }
 
 sub getData {
